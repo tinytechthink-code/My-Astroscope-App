@@ -1,6 +1,12 @@
 interface MatchRequest {
   groom: string;
   bride: string;
+  groomDOB: string;
+  groomTime: string;
+  groomPlace: string;
+  brideDOB: string;
+  brideTime: string;
+  bridePlace: string;
 }
 
 interface OpenAIMessage {
@@ -34,16 +40,31 @@ export async function POST(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400 });
   }
 
-  const { groom, bride } = body;
-  if (!groom || !bride) {
-    return new Response(JSON.stringify({ error: "groom and bride are required" }), { status: 400 });
+  const { groom, bride, groomDOB, groomTime, groomPlace, brideDOB, brideTime, bridePlace } = body;
+  if (!groom || !bride || !groomDOB || !groomTime || !groomPlace || !brideDOB || !brideTime || !bridePlace) {
+    return new Response(JSON.stringify({ error: "groom, bride, and birth details are required" }), { status: 400 });
   }
 
-  const prompt = `
-  Horoscope compatibility for Groom: ${groom}
-  Bride: ${bride}
-  Give compatibility score out of 100 and explanation.
-  `;
+  const prompt = `Horoscope compatibility of the following bride and groom using Vedic astrology principles.
+Provide a detailed analysis including:
+Compatibility of Moon signs (Rashi) and Nakshatras
+Mangal Dosha (Kuja Dosha) presence and its effects
+Planetary positions and their impact on married life
+Overall marital harmony, emotional compatibility, financial stability, and longevity of marriage
+
+Bride Details:
+  Name: ${bride}
+  Date of Birth: ${brideDOB}
+  Time of Birth: ${brideTime}
+  Place of Birth: ${bridePlace}
+
+Groom Details:
+  Name: ${groom}
+  Date of Birth: ${groomDOB}
+  Time of Birth: ${groomTime}
+  Place of Birth: ${groomPlace}
+
+Give compatibility score out of 100 and conclude with a clear compatibility verdict (Excellent / Good / Average / Needs Remedies) and suggest remedies if any doshas are present.`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -59,6 +80,7 @@ export async function POST(req: Request): Promise<Response> {
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error("OpenAI failed", response.status, errorText);
     return new Response(JSON.stringify({ error: "OpenAI request failed", status: response.status, detail: errorText }), { status: 502 });
   }
 
